@@ -1,0 +1,12 @@
+FROM amd64/python:3.9.9-slim-buster
+
+# Update apt sources to use Debian archive
+RUN echo "deb http://archive.debian.org/debian buster main contrib non-free" > /etc/apt/sources.list && \
+    echo "deb http://archive.debian.org/debian-security buster/updates main contrib non-free" >> /etc/apt/sources.list
+
+# Install system dependencies
+RUN apt-get update -y && \
+	apt-get -y install build-essential wget unzip git
+
+# Install Python packages
+RUN pip install snipar==0.0.20
