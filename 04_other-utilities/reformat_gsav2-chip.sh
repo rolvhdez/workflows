@@ -37,7 +37,7 @@ for i in {1..22}; do
         --export bgen-1.2 \
         --rm-dup 'exclude-all' \
         --snps-only \
-        --set-all-var-ids '@:#:$r:$a' \
+        --set-all-var-ids 'chr@:#:$r:$a' \
         --out "${output_name}"
 done
 echo "[INFO] $(date) | Done!"
