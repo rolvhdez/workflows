@@ -122,7 +122,7 @@ dx run app-swiss-army-knife \
       --threads 1 \
       --batch_size 1000 \
       --robust \
-      --out '${PHENO}.chr_${CHR}.topmed_phased.robust'
+      --out '${PHENO}.chr_@.topmed_phased.robust'
     " \
     --brief \
     --yes
