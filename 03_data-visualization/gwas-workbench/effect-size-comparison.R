@@ -1,7 +1,5 @@
 # Author:
 # Date: 
-renv::load("~/repositories/analysis-room/")
-setwd("~/repositories/analysis-room/")
 suppressPackageStartupMessages(library(cli))
 suppressPackageStartupMessages(library(ggrepel))
 suppressPackageStartupMessages(library(ggplot2))
