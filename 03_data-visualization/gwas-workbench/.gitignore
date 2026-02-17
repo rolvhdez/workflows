@@ -60,3 +60,4 @@ rsconnect/
 
 # Test scripts
 test*
+renv/
