@@ -7,7 +7,6 @@
 .RData
 .RDataTmp
 .Rprofile
-renv/
 
 # User-specific files
 .Ruserdata
@@ -60,4 +59,3 @@ rsconnect/
 
 # Test scripts
 test*
-renv/
