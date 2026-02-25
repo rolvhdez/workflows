@@ -63,6 +63,7 @@ CHR_PADDED=$(printf "%02d" "$CHR")
 INPUT_ROOT="/Users/Roberto/00_data"
 GENO_DIR="${INPUT_ROOT}/01_genotypes/02_topmed-imputed/"
 PHENO_DIR="${INPUT_ROOT}/00_phenotypes/02_mcps_qc-phenotypes/ver_2"
+PEDIGREE_DIR="${INPUT_ROOT}/00_phenotypes/02_mcps_qc-phenotypes"
 COVAR_DIR="${INPUT_ROOT}/00_phenotypes/02_mcps_qc-phenotypes/ver_2"
 GRM_DIR="/Data/KING-IBD"
 
@@ -71,6 +72,7 @@ OUTPUT_DIR="${OUTPUT_ROOT}/batches/${PHENO}"
 
 # File definitions
 PHENO_FILE="${PHENO_DIR}/${PHENO}.qc-phenotype.txt"
+PEDIGREE_FILE="${PEDIGREE_DIR}/pedigree.qc-phenotypes.txt"
 COVAR_FILE="${COVAR_DIR}/covars.qc-phenotype.nofasting.txt"
 GRM_FILE="${GRM_DIR}/king_ibdseg_4th.seg"
 
@@ -80,6 +82,7 @@ BGEN_FILE="${GENO_DIR}/op_prefix_chr${CHR}.shapeit5_ligated.high-quality.bgen"
 echo "[INFO] $(date) | Checking input files..."
 
 check_dx_file "$PHENO_FILE"
+check_dx_file "$PEDIGREE_FILE"
 check_dx_file "$COVAR_FILE"
 check_dx_file "$GRM_FILE"
 check_dx_file "$BGEN_FILE"
@@ -104,6 +107,7 @@ dx run app-swiss-army-knife \
     -iimage="rolvhdez/snipar:0.0.22" \
     -imount_inputs=true \
     -iin="${PHENO_FILE}" \
+    -iin="${PEDIGREE_FILE}" \
     -iin="${COVAR_FILE}" \
     -iin="${GRM_FILE}" \
     -iin="${BGEN_FILE}" \
@@ -115,6 +119,7 @@ dx run app-swiss-army-knife \
     gwas.py '${PHENO}.qc-phenotype.txt' \
       --bgen 'op_prefix_chr@.shapeit5_ligated.high-quality' \
       --chr_range ${CHR} \
+      --pedigree 'pedigree.qc-phenotypes.txt' \
       --covar 'covars.qc-phenotype.nofasting.txt' \
       --grm 'king_ibdseg_4th.seg' \
       --sparse_thresh 0.075 \
@@ -124,9 +129,9 @@ dx run app-swiss-army-knife \
       --batch_size 1000 \
       --out '${PHENO}.chr_@.topmed_phased.nonimputed'
     " \
-    --brief
-#    --yes
+    --brief \
+    --yes
 
-# Retrieving the job name
+# Retrieving job name
 echo "[DONE] $(date) | Job submitted: $JOB_NAME"
 exit 0
