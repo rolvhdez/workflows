@@ -40,8 +40,8 @@ make_manhattan <- function(df, axis, title, bonferroni) {
     ) +
     # Modify axis
     scale_x_continuous(
-      label = df_axis$CHR,
-      breaks = df_axis$CENTER
+      label = axis$CHR,
+      breaks = axis$CENTER
     ) +
     scale_color_manual(
       values = rep(c("gray", "steelblue"), 22)

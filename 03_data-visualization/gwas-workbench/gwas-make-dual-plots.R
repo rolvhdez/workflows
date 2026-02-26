@@ -11,6 +11,7 @@ suppressPackageStartupMessages(library(data.table))
 suppressPackageStartupMessages(library(R.utils))
 suppressPackageStartupMessages(library(GenomicRanges))
 suppressPackageStartupMessages(library(rtracklayer))
+suppressPackageStartupMessages(library(patchwork))
 
 # Load personalized functions
 "%&%" <- function(a, b) paste0(a, b)
@@ -125,3 +126,49 @@ qqplot <- ggplot(data = pvalues_combined) +
   ) +
   theme(legend.position = "top")
 export_plot(qqplot, output_dir %&% "dual-qqplot.png")
+
+# --------------------------------
+# Manhattan Plot
+# --------------------------------
+process_manhattan <- function(df, bonferroni, phenotype) {
+  m_list <- format_for_manhattan(df)
+  df_m <- m_list[[1]]
+  df_a <- m_list[[2]]
+  m <- make_manhattan(df_m, df_a, "", bonferroni)
+  return(m)
+}
+
+m1 <- process_manhattan(df1, bonferroni, phenotype) +
+  labs(x = "") +
+  ggtitle(model_label1) +
+  theme(plot.title = element_text(hjust = 0.5, face = "plain", size = 8))
+if ("GENE" %in% names(df1)) {
+  m1 <- m1 +
+    geom_text_repel(
+      data = subset(df1, !is.na(df1$GENE)),
+      aes(label = GENE),
+      box.padding = 0.5,
+      point.padding = 0.3,
+      max.overlaps = 16,
+      size = 3
+    )
+}
+
+m2 <- process_manhattan(df2, bonferroni, phenotype) +
+  ggtitle(model_label2) +
+  theme(plot.title = element_text(hjust = 0.5, face = "plain", size = 8))
+if ("GENE" %in% names(df2)) {
+  m2 <- m2 +
+    geom_text_repel(
+      data = subset(df2, !is.na(df2$GENE)),
+      aes(label = GENE),
+      box.padding = 0.5,
+      point.padding = 0.3,
+      max.overlaps = 16,
+      size = 3
+    )
+}
+
+manhattan_plot <- m1 / m2 +
+  plot_annotation(title = phenotype)
+export_plot(manhattan_plot, output_dir %&% "dual-manhattan.png")
