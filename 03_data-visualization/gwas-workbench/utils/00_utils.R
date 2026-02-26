@@ -54,7 +54,6 @@ read_sumstats_file <- function(sumstats_path, chunk_size = 1000000) {
   close(con)
   return(df) # Return
 }
-
 reformat_sumstats <- function(sumstats, model) {
   #' Change the table format to follow the template
   #' from https://r-graph-gallery.com/101_Manhattan_plot.html
@@ -97,6 +96,21 @@ reformat_sumstats <- function(sumstats, model) {
   }
   
   return(x)
+}
+process_sumstats <- function(path, model, label) {
+  raw <- fancy_process(
+    process = read_sumstats_file,
+    message = "Reading " %&% path,
+    sumstats_path = path,
+    chunk_size = 1000000
+  )
+  df <- reformat_sumstats(raw, model)
+  df <- df %>%
+    mutate(
+      CHR = as.integer(CHR),
+      DATASET = label
+    )
+  return(df)
 }
 export_plot <- function(plot_obj, file_path, 
                        width = 1080, height = 1080 * 0.75, 
