@@ -45,37 +45,20 @@ if (!dir.exists(output_dir)) {
   output_dir <- output_dir %&% "."
 }
 
-get_annotations <- function(df, bonferroni) {
-  snps <- subset(df, P <= bonferroni)$SNP
-  if (length(snps) > 0) {
-    cli::cli_alert_warning(
-      paste0(scales::comma(length(snps)), " SNPs found at p <= ", bonferroni)
-    )
-    genes <- create_gene_ranges()
-    annotations <- annotate_genes_to_sig_snps(
-      sumstats = df,
-      gene_range = genes,
-      sig = bonferroni
-    )
-    return(dplyr::select(annotations, SNP, GENE))
-  } else {
-    cli::cli_alert_warning(
-      paste0("No significant SNPs were found at p <= ", bonferroni, ". Skipping annotation.")
-    )
-    return(NULL)
-  }
-}
-
 # --------------------------------
 # Read arguments
 # --------------------------------
 
-df1 <- process_sumstats(sumstats1, model1, "a")
-df2 <- process_sumstats(sumstats2, model2, "b")
+df1 <- process_sumstats(sumstats1, model1, model_label1)
+df2 <- process_sumstats(sumstats2, model2, model_label2)
 df_combined <- dplyr::bind_rows(df1, df2)
 
 bonferroni <- 5e-8 # Bonferroni adjusted P-Value
 cli_alert_info("Bonferroni adjusted P-value: " %&% scales::scientific(bonferroni))
+
+# --------------------------------
+# Effective sample size
+# --------------------------------
 
 if (annotations == "yes") {
   df1_annotations <- get_annotations(df1, bonferroni)
@@ -135,17 +118,18 @@ process_manhattan <- function(df, bonferroni, phenotype) {
   df_m <- m_list[[1]]
   df_a <- m_list[[2]]
   m <- make_manhattan(df_m, df_a, "", bonferroni)
-  return(m)
+  list(plot = m, data = df_m)
 }
 
-m1 <- process_manhattan(df1, bonferroni, phenotype) +
+res1 <- process_manhattan(df1, bonferroni, phenotype)
+m1 <- res1$plot +
   labs(x = "") +
   ggtitle(model_label1) +
   theme(plot.title = element_text(hjust = 0.5, face = "plain", size = 8))
-if ("GENE" %in% names(df1)) {
+if ("GENE" %in% names(res1$data)) {
   m1 <- m1 +
     geom_text_repel(
-      data = subset(df1, !is.na(df1$GENE)),
+      data = subset(res1$data, !is.na(GENE)),
       aes(label = GENE),
       box.padding = 0.5,
       point.padding = 0.3,
@@ -154,13 +138,15 @@ if ("GENE" %in% names(df1)) {
     )
 }
 
-m2 <- process_manhattan(df2, bonferroni, phenotype) +
+res2 <- process_manhattan(df2, bonferroni, phenotype)
+m2 <- res2$plot +
+  labs(x = "") +
   ggtitle(model_label2) +
   theme(plot.title = element_text(hjust = 0.5, face = "plain", size = 8))
-if ("GENE" %in% names(df2)) {
+if ("GENE" %in% names(res2$data)) {
   m2 <- m2 +
     geom_text_repel(
-      data = subset(df2, !is.na(df2$GENE)),
+      data = subset(res2$data, !is.na(GENE)),
       aes(label = GENE),
       box.padding = 0.5,
       point.padding = 0.3,

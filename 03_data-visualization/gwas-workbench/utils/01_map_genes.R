@@ -55,3 +55,23 @@ annotate_genes_to_sig_snps <- function(sumstats, gene_range, sig = 5e-8){
   }
   return(out_df)
 }
+get_annotations <- function(df, bonferroni) {
+  snps <- subset(df, P <= bonferroni)$SNP
+  if (length(snps) > 0) {
+    cli::cli_alert_warning(
+      paste0(scales::comma(length(snps)), " SNPs found at p <= ", bonferroni)
+    )
+    genes <- create_gene_ranges()
+    annotations <- annotate_genes_to_sig_snps(
+      sumstats = df,
+      gene_range = genes,
+      sig = bonferroni
+    )
+    return(dplyr::select(annotations, SNP, GENE))
+  } else {
+    cli::cli_alert_warning(
+      paste0("No significant SNPs were found at p <= ", bonferroni, ". Skipping annotation.")
+    )
+    return(NULL)
+  }
+}
