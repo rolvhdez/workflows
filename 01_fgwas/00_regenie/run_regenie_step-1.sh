@@ -73,7 +73,7 @@ OUTPUT_ROOT="${HOME}/results"
 OUTPUT_DIR="${OUTPUT_ROOT}/${PHENO}"
 
 # File definitions
-BGEN_FILE="${GENO_DIR}/MCPS_Freeze_150.GT_hg38.pVCF.revised_qc.chr${CHR}.bgen"
+BGEN_FILE="${GENO_DIR}/MCPS_Freeze_150.GT_hg38.pVCF.revised_qc.autosomes-maf01.chr_${CHR}.bgen"
 PHENO_FILE="${PHENO_DIR}/${PHENO}.qc-phenotype.txt"
 COVAR_FILE="${COVAR_DIR}/covars.qc-phenotype.nofasting.txt"
 GRM_FILE="${GRM_DIR}/king_ibdseg_4th.seg"
@@ -89,7 +89,7 @@ download_dx_file "$BGEN_FILE" "$DOWNLOAD_DIR"
 echo "[INFO] $(date) | All required inputs downloaded."
 
 # Redefine the local inputs
-BGEN_FILE="${DOWNLOAD_DIR}/MCPS_Freeze_150.GT_hg38.pVCF.revised_qc.chr${CHR}.bgen"
+BGEN_FILE="${DOWNLOAD_DIR}/MCPS_Freeze_150.GT_hg38.pVCF.revised_qc.autosomes-maf01.chr_${CHR}.bgen"
 PHENO_FILE="${DOWNLOAD_DIR}/${PHENO}.qc-phenotype.txt"
 COVAR_FILE="${DOWNLOAD_DIR}/covars.qc-phenotype.nofasting.txt"
 GRM_FILE="${DOWNLOAD_DIR}/king_ibdseg_4th.seg"
@@ -106,5 +106,5 @@ docker run -w /tmp/ \
 		--phenoFile /input/$(basename "${PHENO_FILE}") \
 		--bsize 1000 \
 		--threads 4 \
-		--gz --out /output/${PHENO}.gsav2_phased.unrelated \
+		--gz --out /output/${PHENO}.chr_${CHR}.gsav2_phased.unrelated \
 		--verbose
