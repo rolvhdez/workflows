@@ -62,7 +62,7 @@ CHR_PADDED=$(printf "%02d" "$CHR")
 # --------------------------------
 
 INPUT_ROOT="/Users/Roberto/00_data"
-GENO_DIR="${INPUT_ROOT}/01_genotypes/02_topmed-imputed/"
+GENO_DIR="${INPUT_ROOT}/01_genotypes/01_gsav2-chip"
 PHENO_DIR="${INPUT_ROOT}/00_phenotypes/02_mcps_qc-phenotypes/ver_2"
 COVAR_DIR="${INPUT_ROOT}/00_phenotypes/02_mcps_qc-phenotypes/ver_2"
 GRM_DIR="/Data/KING-IBD"
@@ -73,7 +73,7 @@ OUTPUT_ROOT="${HOME}/results"
 OUTPUT_DIR="${OUTPUT_ROOT}/${PHENO}"
 
 # File definitions
-BGEN_FILE="${GENO_DIR}/op_prefix_chr${CHR}.shapeit5_ligated.high-quality.bgen"
+BGEN_FILE="${GENO_DIR}/MCPS_Freeze_150.GT_hg38.pVCF.revised_qc.chr${CHR}.bgen"
 PHENO_FILE="${PHENO_DIR}/${PHENO}.qc-phenotype.txt"
 COVAR_FILE="${COVAR_DIR}/covars.qc-phenotype.nofasting.txt"
 GRM_FILE="${GRM_DIR}/king_ibdseg_4th.seg"
@@ -89,7 +89,7 @@ download_dx_file "$BGEN_FILE" "$DOWNLOAD_DIR"
 echo "[INFO] $(date) | All required inputs downloaded."
 
 # Redefine the local inputs
-BGEN_FILE="${DOWNLOAD_DIR}/op_prefix_chr${CHR}.shapeit5_ligated.high-quality.bgen"
+BGEN_FILE="${DOWNLOAD_DIR}/MCPS_Freeze_150.GT_hg38.pVCF.revised_qc.chr${CHR}.bgen"
 PHENO_FILE="${DOWNLOAD_DIR}/${PHENO}.qc-phenotype.txt"
 COVAR_FILE="${DOWNLOAD_DIR}/covars.qc-phenotype.nofasting.txt"
 GRM_FILE="${DOWNLOAD_DIR}/king_ibdseg_4th.seg"
@@ -104,7 +104,7 @@ docker run -w /tmp/ \
 		--bgen /input/$(basename "${BGEN_FILE}") \
 		--covarFile /input/$(basename "${COVAR_FILE}") \
 		--phenoFile /input/$(basename "${PHENO_FILE}") \
-		--bt --bsize 1000 \
+		--bsize 1000 \
 		--threads 4 \
 		--gz --out /output/${PHENO}.gsav2_phased.unrelated \
 		--verbose
