@@ -30,20 +30,22 @@ df_h2 <- df_h2 %>%
 
 #
 p <- df_h2 %>%
-  ggplot(aes(x = reorder(description, -h2), y = h2)) +
+  ggplot(aes(x = reorder(description, h2), y = h2)) +
   geom_errorbar(aes(
     x = description,
     ymin = h2 - h2_se,
     ymax = h2 + h2_se
-  ), width = 0.075) +
-  geom_point(aes(fill = description), size = 4, shape = 21) +
+  ), width = 0.25) +
+  geom_hline(yintercept = 0, color = red, linetype = "dashed") +
+  geom_point(size = 3, shape = 16) +
   xlab("") +
   ylab(expression(h[SNP]^2)) +
   theme(
     legend.position = "none"
-  )
+  ) +
+  coord_flip()
 export_plot(p,
   output_dir %&% "traits_heritability.png",
-  height = 1080 * 0.75, width = 1080,
-  res = 150, units = "px"
+  height = 2 * 1080 * 0.75, width = 2 * 1080,
+  res = 300, units = "px"
 )
