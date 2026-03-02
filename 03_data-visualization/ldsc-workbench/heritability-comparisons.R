@@ -43,13 +43,13 @@ df_long <- df_h2 %>%
     names_from = model,
     values_from = c(h2, h2_se)
   ) %>%
-  tidyr::drop_na()
-df_long <- df_long %>%
-  left_join(pheno_dict, by = "trait")
+  tidyr::drop_na() %>%
+  left_join(pheno_dict, by = "trait") %>%
+  mutate(ratio = h2_b / h2_a)
 
 #
-x_label <- bquote(h[.(label_a)]^2)
-y_label <- bquote(h[.(label_b)]^2)
+x_label <- bquote(h[SNP]^2~(.(label_a)))
+y_label <- bquote(h[SNP]^2~(.(label_b)))
 p <- df_long %>%
   ggplot(aes(x = h2_a, y = h2_b)) +
   geom_abline(
@@ -69,17 +69,29 @@ p <- df_long %>%
     xmax = h2_a + (h2_se_a * 1.96)
   ), color = "lightgray", width = 0.005) +
   geom_point(
-    size = 3, shape = 21, fill = blue
+    aes(fill = ratio),
+    size = 2.55, shape = 21
+  ) +
+  scale_fill_gradient2(
+    low = blue, high = red,
+    mid = "white", midpoint = 1
   ) +
   ggrepel::geom_text_repel(aes(
     x = h2_a, y = h2_b,
     label = description
-  ), size = 3, box.padding = 0.65, point.padding = 0.65) +
+  ),
+    size = 3, box.padding = 0.65,
+    point.padding = 0.65,
+    max.overlaps = 16
+  ) +
   xlab(x_label) +
-  ylab(y_label)
+  ylab(y_label) +
+  theme(
+    legend.position = "none"
+  )
 
 export_plot(p,
   output_dir %&% "heritability_comparison.png",
-  height = 1080 * 0.75, width = 1080,
-  res = 150, units = "px"
+  height = 2 * 1080 * 0.75, width = 2 * 1080,
+  res = 300, units = "px"
 )
