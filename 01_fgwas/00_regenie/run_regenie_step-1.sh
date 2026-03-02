@@ -68,7 +68,7 @@ COVAR_DIR="${INPUT_ROOT}/00_phenotypes/02_mcps_qc-phenotypes/ver_2"
 GRM_DIR="/Data/KING-IBD"
 
 # Local
-DOWNLOAD_DIR="${HOME}/download/inputs"
+DOWNLOAD_DIR="${HOME}/downloads/regenie-inputs"
 OUTPUT_ROOT="${HOME}/results"
 OUTPUT_DIR="${OUTPUT_ROOT}/${PHENO}"
 
@@ -88,13 +88,23 @@ download_dx_file "$BGEN_FILE" "$DOWNLOAD_DIR"
 
 echo "[INFO] $(date) | All required inputs downloaded."
 
+# Redefine the local inputs
+BGEN_FILE="${DOWNLOAD_DIR}/op_prefix_chr${CHR}.shapeit5_ligated.high-quality.bgen"
+PHENO_FILE="${DOWNLOAD_DIR}/${PHENO}.qc-phenotype.txt"
+COVAR_FILE="${DOWNLOAD_DIR}/covars.qc-phenotype.nofasting.txt"
+GRM_FILE="${DOWNLOAD_DIR}/king_ibdseg_4th.seg"
+
 # Run the script
-regenie \
-	--step 1 \
-	--bed "${BGEN_FILE}" \
-	--covarFile "${COVAR_FILE}" \
-	--phenoFile "${PHENO_FILE}" \
-	--bt --bsize 1000 \
-	--threads 4 \
-	--gz --out "${OUTPUT_DIR}/${PHENO}.gsav2_phased.unrelated" \
-    --verbose
+docker run -w /tmp/ \
+	-v "${DOWNLOAD_DIR}":/input \
+	-v "${OUTPUT_DIR}":/output \
+	regenie:v3.0.1 \
+	regenie \
+		--step 1 \
+		--bgen /input/$(basename "${BGEN_FILE}") \
+		--covarFile /input/$(basename "${COVAR_FILE}") \
+		--phenoFile /input/$(basename "${PHENO_FILE}") \
+		--bt --bsize 1000 \
+		--threads 4 \
+		--gz --out /output/${PHENO}.gsav2_phased.unrelated \
+		--verbose
