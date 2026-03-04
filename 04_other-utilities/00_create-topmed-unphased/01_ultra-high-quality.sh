@@ -1,6 +1,6 @@
 #!/bin/bash
 # Author: Roberto Olvera Hernandez
-# Date: 2026-03-03
+# Date: 2026-03-04
 
 set -euo pipefail
 
@@ -64,6 +64,7 @@ dx run app-swiss-army-knife \
   --folder "$OUT_DIR" \
   -icmd="
   plink2 --bgen '$(basename $BGEN)' 'ref-first' \
+    --sample '$(basename $SAMPLE)' \
     --extract '$(basename $SNPLIST)' \
     --export bgen-1.2 \
     --memory 12000 --threads 8 \
