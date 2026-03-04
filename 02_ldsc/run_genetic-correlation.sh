@@ -4,6 +4,7 @@
 
 snipar_dir="$1"
 regenie_dir="$2"
+ldscores="$3"
 
 # Create unique temporary file names for each iteration to avoid conflicts
 snipar_munged_base="/tmp/snipar_sumstats"
@@ -97,26 +98,7 @@ munge_regenie() {
         echo "[ERROR] munge_sumstats.py failed for regenie with exit code $exit_code"
         return $exit_code
     fi
-    
-    # Check if output file was created
-    if [ ! -f "${output_base}.sumstats.gz" ]; then
-        echo "[ERROR] Output file ${output_base}.sumstats.gz not created"
-        return 1
-    fi
-    
-    # Add "chr" prefix to chromosome numbers
-    echo "[DEBUG] Adding 'chr' prefix to SNP IDs"
-    zcat "${output_base}.sumstats.gz" | \
-        awk 'BEGIN {OFS="\t"} 
-             NR==1 {print $0} 
-             NR>1 && $1=="SNP" {print $0} 
-             NR>1 && $1!="SNP" {print "chr"$0}' | \
-        gzip > "${tmp_file}.gz"
-    
-    # Move the modified file back
-    mv "${tmp_file}.gz" "${output_base}.sumstats.gz"
-    
-    return 0
+    return $exit_code
 }
 
 # Heritability analysis ---
@@ -213,7 +195,7 @@ for snipar_file in "$snipar_dir"/*.sumstats.gz; do
         
         # 2. Run the heritability analysis
         echo "[INFO] Writing to $outname"
-        if ! run_ldsc_rg "${snipar_munged}.sumstats.gz" "${regenie_munged}.sumstats.gz" "$HOME/data/ldscores/MCPS_WGS_covLD_scores_1Mb_chr@" "$outname"; then
+        if ! run_ldsc_rg "${snipar_munged}.sumstats.gz" "${regenie_munged}.sumstats.gz" "$ldscores" "$outname"; then
             echo "[ERROR] LDSC analysis failed for $pheno_id"
         fi
         
