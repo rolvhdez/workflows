@@ -21,6 +21,13 @@ dxCheckFile() {
 # 02. Check input files
 # --------------------------------
 
+CHR="$1"
+if ! [[ "$CHR" =~ ^[0-9]+$ ]] || [[ "$CHR" -lt 1 ]] || [[ "$CHR" -gt 22 ]]; then
+    echo "Error: Chromosome must be an integer between 1 and 22"
+    exit 1
+fi
+CHR_PADDED=$(printf "%02d" "$CHR")
+
 # Fixed files
 BGEN="/Data/TOPMED-imputed/MCPS_Freeze_150.GT_hg38.pVCF.rgcpid.QC2.TOPMED_dosages.bgen" # ID is provided below
 SAMPLE="/Data/TOPMED-imputed/MCPS_Freeze_150.GT_hg38.pVCF.rgcpid.QC2.TOPMED_dosages.COLLAB.sample" # ID is provided below
@@ -30,7 +37,7 @@ inputs=("$BGEN" "$SAMPLE" "$SNPLIST")
 
 # Job name
 OUT_DIR="/Users/Roberto/00_data/01_genotypes/02_topmed-imputed/00_unphased/"
-OUT_NAME="MCPS_Freeze_150.GT_hg38.pVCF.rgcpid.QC2.TOPMED_dosages.high-quality"
+OUT_NAME="MCPS_Freeze_150.GT_hg38.pVCF.rgcpid.QC2.TOPMED_dosages.high-quality.chr_${CHR}"
 
 # Check inputs
 echo "[INFO] $(date) | Checking input files..."
@@ -47,12 +54,10 @@ fi
 # 03. Launch Swiss Army Knife
 # --------------------------------
 
-JOB_NAME="Segment TOPMed-imputed (Unphased) INFO > 0.99"
+JOB_NAME="Segment TOPMed-imputed (Unphased) INFO > 0.99 (chr_${CHR_PADDED})"
 
 # DNAnexus Launch Command: Swiss Army Knife
 # Instance: mem1_ssd1_v2_x8 (CPU : 8 | RAM : 16.0 GB | VOL : 200 GB)
-# Cost: _____ per hr
-# Max runtime: _h (~$___)
 dx run app-swiss-army-knife \
   -imount_inputs=true \
   -iin="$BGEN" \
@@ -66,6 +71,7 @@ dx run app-swiss-army-knife \
   plink2 --bgen '$(basename $BGEN)' 'ref-first' \
     --sample '$(basename $SAMPLE)' \
     --extract '$(basename $SNPLIST)' \
+    --chr '${CHR}' \
     --export bgen-1.2 \
     --memory 12000 --threads 8 \
     --out '${OUT_NAME}'
