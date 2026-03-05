@@ -42,7 +42,7 @@ dx find data \
 UNRELATED=$(
 dx find data \
   --tag 'unrelated-individuals' --tag 'sample-list' \
-  --name "*.txt" --brief
+  --name "*.keep" --brief
 )
 
 # Check ---
