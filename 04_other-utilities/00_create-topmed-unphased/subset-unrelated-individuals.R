@@ -1,7 +1,6 @@
-rm(list=ls())
-library(dplyr)
-library(scales)
-library(cli)
+suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(scales))
+suppressPackageStartupMessages(library(cli))
 
 # 
 '%&%' <- function(a, b) paste0(a, b)
@@ -17,8 +16,11 @@ get_firstdegree_ids <- function(df) {
 set.seed(123)
 
 # Obtain the individuals with first degree relatives ----
-king <- read.table("~/data/king_ibdseg_4th.seg", sep = "\t", head = TRUE)
-baseline <- read.table("~/data/complete-set.qc-phenotypes.txt", sep = "\t", head = TRUE)
+args <- commandArgs(trailingOnly = TRUE)
+
+king <- read.table(args[1], sep = "\t", head = TRUE)
+baseline <- read.table(args[2], sep = "\t", head = TRUE)
+output_dir <- args[3]
 
 # Create phenotype filter ---
 first_degree_ids <- get_firstdegree_ids(king)
@@ -27,7 +29,6 @@ baseline_mask <- (
   baseline$IID %in% extra_firstdegree | !baseline$IID %in% first_degree_ids
 ) & !grepl("-DUP$", baseline$IID)
 unrelated_baseline <- baseline[baseline_mask, ]
-head(unrelated_baseline)
 
 # Remove the 'X' from the headers ---
 pheno_colnames <- names(unrelated_baseline)[15:length(unrelated_baseline)]
@@ -51,7 +52,7 @@ cli_alert(paste0(
 ))
 write.table(
   unrelated_baseline,
-  '~/data/complete-set.unrelated.txt',
+  output_dir %&% 'complete-set.unrelated.txt',
   sep = "\t",
   row.names = FALSE,
   quote = FALSE
