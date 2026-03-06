@@ -56,7 +56,7 @@ echo "[INFO] $(date) | All required inputs exist."
 # 03. Launch Swiss Army Knife
 # --------------------------------
 
-JOB_NAME="Apply QC TOPMed-imputed (Unphased) (chr_${CHR_PADDED})"
+JOB_NAME="Apply QC TOPMed-imputed (Unrelated individuals) (chr_${CHR_PADDED})"
 
 BGEN_NAME=$(dx describe "$BGEN" --json | jq -r .name)
 SAMPLE_NAME=$(dx describe "$SAMPLE" --json | jq -r .name)
