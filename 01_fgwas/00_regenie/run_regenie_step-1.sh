@@ -69,7 +69,7 @@ echo "[INFO] $(date) | All required inputs exist."
 # 03. Launch Swiss Army Knife
 # --------------------------------
 
-JOB_NAME="REGENIE (unrelated-individuals) ${PHENO_CODE} (chr_${CHR_PADDED})"
+JOB_NAME="REGENIE Step 01 (unrelated-individuals) ${PHENO_CODE} (chr_${CHR_PADDED})"
 
 BGEN_NAME=$(dx describe $BGEN --json | jq -r .name)
 SAMPLE_NAME=$(dx describe $SAMPLE --json | jq -r .name)
@@ -86,7 +86,6 @@ if ! dx ls "$OUTPUT_DIR" &> /dev/null; then
 fi
 
 # Run the script
-
 dx run app-swiss-army-knife \
     -imount_inputs=true \
     -iin="${BGEN}" \
