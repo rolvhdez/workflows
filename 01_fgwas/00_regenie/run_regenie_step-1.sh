@@ -28,13 +28,6 @@ checkDxFile() {
     fi
     echo "[INFO] Using: $FILE"
 }
-downloadDxFile() {
-    FILE="$1"
-    OUTPATH="$2"
-    checkDxFile "$FILE"
-    mkdir -p "$OUTPATH"
-    dx download "$FILE" -o "$OUTPATH" -f
-}
 
 # --------------------------------
 # 00. Set up
@@ -115,4 +108,9 @@ dx run app-swiss-army-knife \
 		--gz --out "${PHENO_CODE}.gsav2-chip.unrelated.chr_${CHR}" \
 		--verbose
     " \
-    --cost-limit 3
+    --cost-limit 3 \
+    --brief \
+    --yes
+
+echo "[DONE] $(date) | Job launched: $JOB_NAME"
+exit 0
