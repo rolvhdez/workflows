@@ -21,7 +21,7 @@ echo "[INFO] Start: $(date)"
 checkDxFile() {
     # Checks the existence of a file
     # within DNAnexus.
-    FILEPATH="$1"
+    FILE="$1"
     if ! dx ls "$FILE" &> /dev/null; then
         echo "[ERROR] $(date) | Missing file in DNAnexus: $FILEPATH"
         exit 1
@@ -57,14 +57,8 @@ fi
 CHR_PADDED=$(printf "%02d" "$CHR")
 
 # --------------------------------
-# 01. Check inputs and outputs
-# MODIFY THESE PATHS TO MATCH YOUR PROJECT
+# 01. Check input files
 # --------------------------------
-
-# Local
-DOWNLOAD_DIR="${HOME}/downloads/regenie-inputs"
-OUTPUT_ROOT="${HOME}/results"
-OUTPUT_DIR="${OUTPUT_ROOT}/${PHENO_CODE}"
 
 # File definitions
 BGEN=$(dx find data --tag 'gsav2-chip' --tag 'unrelated-individuals' --name "*chr_${CHR}.bgen" --brief)
@@ -72,31 +66,53 @@ SAMPLE=$(dx find data --tag 'gsav2-chip' --tag 'unrelated-individuals' --name "*
 PHENO=$(dx find data --tag 'phenotype' --tag 'unrelated-individuals' --name "${PHENO_CODE}*.txt" --brief)
 COVAR=$(dx find data --tag 'covariates' --tag 'unrelated-individuals' --name "*.nofasting.txt" --brief)
 
-# Downloading
-echo "[INFO] $(date) | Downloading input files..."
-downloadDxFile "$BGEN" "$DOWNLOAD_DIR"
-downloadDxFile "$SAMPLE" "$DOWNLOAD_DIR"
-downloadDxFile "$PHENO" "$DOWNLOAD_DIR"
-downloadDxFile "$COVAR" "$DOWNLOAD_DIR"
-echo "[INFO] $(date) | All required inputs downloaded."
+# Check ---
+inputs=("$BGEN" "$SAMPLE" "$PHENO" "$COVAR")
+echo "[INFO] $(date) | Checking input files..."
+for i in "${inputs[@]}"; do checkDxFile "$i"; done
+echo "[INFO] $(date) | All required inputs exist."
 
-# Redefine the local inputs
+# --------------------------------
+# 03. Launch Swiss Army Knife
+# --------------------------------
+
+JOB_NAME="REGENIE (unrelated-individuals) ${PHENO_CODE} (chr_${CHR_PADDED})"
+
 BGEN_NAME=$(dx describe $BGEN --json | jq -r .name)
 SAMPLE_NAME=$(dx describe $SAMPLE --json | jq -r .name)
 PHENO_NAME=$(dx describe $PHENO --json | jq -r .name)
 COVAR_NAME=$(dx describe $COVAR --json | jq -r .name)
 
+OUTPUT_ROOT="/Users/Roberto/01_results/01_gwas-sumstats/03_regenie-unrelated/batches"
+OUTPUT_DIR="${OUTPUT_ROOT}/${PHENO_CODE}"
+
+# Create the output directory on DNAnexus
+if ! dx ls "$OUTPUT_DIR" &> /dev/null; then
+    echo "[INFO] $(date) | Creating output directory: $OUTPUT_DIR"
+    dx mkdir -p "$OUTPUT_DIR"
+fi
+
 # Run the script
-docker run -w /tmp/ \
-	-v "${DOWNLOAD_DIR}":/input \
-	-v "${OUTPUT_DIR}":/output \
-	ghcr.io/rgcgithub/regenie/regenie:v3.0.1.gz \
+
+dx run app-swiss-army-knife \
+    -imount_inputs=true \
+    -iin="${BGEN}" \
+    -iin="${SAMPLE}" \
+    -iin="${PHENO}" \
+    -iin="${COVAR}" \
+    --instance-type mem1_ssd2_v2_x16 \
+    --priority high \
+    --name "${JOB_NAME}" \
+    --folder "${OUTPUT_DIR}" \
+    -icmd="
 	regenie \
 		--step 1 \
-		--bgen "/input/${BGEN_NAME}" \
-		--covarFile "/input/${COVAR_NAME}" \
-		--phenoFile "/input/${PHENO_NAME}" \
+		--bgen "${BGEN_NAME}" \
+		--covarFile "${COVAR_NAME}" \
+		--phenoFile "${PHENO_NAME}" \
 		--bsize 1000 \
 		--threads 4 \
-		--gz --out "/output/${PHENO_CODE}.gsav2-chip.unrelated.chr_${CHR}" \
+		--gz --out "${PHENO_CODE}.gsav2-chip.unrelated.chr_${CHR}" \
 		--verbose
+    " \
+    --cost-limit 3
