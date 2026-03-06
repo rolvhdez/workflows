@@ -21,19 +21,12 @@ echo "[INFO] Start: $(date)"
 checkDxFile() {
     # Checks the existence of a file
     # within DNAnexus.
-    FILEPATH="$1"
+    FILE="$1"
     if ! dx ls "$FILE" &> /dev/null; then
-        echo "[ERROR] $(date) | Missing file in DNAnexus: $FILEPATH"
+        echo "[ERROR] $(date) | Missing file in DNAnexus: $FILE"
         exit 1
     fi
     echo "[INFO] Using: $FILE"
-}
-downloadDxFile() {
-    FILE="$1"
-    OUTPATH="$2"
-    checkDxFile "$FILE"
-    mkdir -p "$OUTPATH"
-    dx download "$FILE" -o "$OUTPATH" -f
 }
 
 # --------------------------------
@@ -61,50 +54,71 @@ CHR_PADDED=$(printf "%02d" "$CHR")
 # MODIFY THESE PATHS TO MATCH YOUR PROJECT
 # --------------------------------
 
-# Local
-DOWNLOAD_DIR="${HOME}/downloads/regenie-inputs"
-OUTPUT_ROOT="${HOME}/results"
-OUTPUT_DIR="${OUTPUT_ROOT}/${PHENO_CODE}"
-
 # File definitions
 BGEN=$(dx find data --tag 'topmed-imputed' --tag 'unrelated-individuals' --tag 'unphased' --name "*chr_${CHR}.bgen" --brief)
 SAMPLE=$(dx find data --tag 'topmed-imputed' --tag 'unrelated-individuals' --tag 'unphased' --name "*chr_${CHR}.sample" --brief)
 PHENO=$(dx find data --tag 'phenotype' --tag 'unrelated-individuals' --name "${PHENO_CODE}*.txt" --brief)
 COVAR=$(dx find data --tag 'covariates' --tag 'unrelated-individuals' --name "*.nofasting.txt" --brief)
+PRED=$(dx find data --tag 'regenie' --tag 'step-01' --tag 'unrelated-individuals' --name "${PHENO_CODE}.*.chr_${CHR}_pred.list" --brief)
+LOCO=$(dx find data --tag 'regenie' --tag 'step-01' --tag 'unrelated-individuals' --name "${PHENO_CODE}.*.chr_${CHR}_*.loco.gz" --brief)
 
-# Downloading
-echo "[INFO] $(date) | Downloading input files..."
-downloadDxFile "$BGEN" "$DOWNLOAD_DIR"
-downloadDxFile "$SAMPLE" "$DOWNLOAD_DIR"
-downloadDxFile "$PHENO" "$DOWNLOAD_DIR"
-downloadDxFile "$COVAR" "$DOWNLOAD_DIR"
-echo "[INFO] $(date) | All required inputs downloaded."
+# Check ---
+inputs=("$BGEN" "$SAMPLE" "$PHENO" "$COVAR" "$PRED" "$LOCO")
+echo "[INFO] $(date) | Checking input files..."
+for i in "${inputs[@]}"; do checkDxFile "$i"; done
+echo "[INFO] $(date) | All required inputs exist."
+
+# --------------------------------
+# 03. Launch Swiss Army Knife
+# --------------------------------
 
 # Redefine the local inputs
+JOB_NAME="REGENIE Step 02 (unrelated-individuals) ${PHENO_CODE} (chr_${CHR_PADDED})"
+
 BGEN_NAME=$(dx describe $BGEN --json | jq -r .name)
 SAMPLE_NAME=$(dx describe $SAMPLE --json | jq -r .name)
 PHENO_NAME=$(dx describe $PHENO --json | jq -r .name)
 COVAR_NAME=$(dx describe $COVAR --json | jq -r .name)
+PRED_NAME=$(dx describe $PRED --json | jq -r .name)
+LOCO_NAME=$(dx describe $LOCO --json | jq -r .name)
 
-PRED_DIR="${HOME}/results/${PHENO_CODE}"
-PRED_NAME="${PHENO_CODE}.chr_${CHR}.gsav2-chip.unrelated_pred.list"
+OUTPUT_ROOT="/Users/Roberto/01_results/01_gwas-sumstats/03_regenie-unrelated/batches"
+OUTPUT_DIR="${OUTPUT_ROOT}/${PHENO_CODE}"
 
-# --------------------------------
-# 02. Run REGENIE
-# --------------------------------
+# Create the output directory on DNAnexus
+if ! dx ls "$OUTPUT_DIR" &> /dev/null; then
+    echo "[INFO] $(date) | Creating output directory: $OUTPUT_DIR"
+    dx mkdir -p "$OUTPUT_DIR"
+fi
 
 # Run regenie
-docker run -w /tmp/ \
-	-v "${DOWNLOAD_DIR}":/input \
-    -v "${PRED_DIR}":/pred \
-	-v "${OUTPUT_DIR}":/output \
-	ghcr.io/rgcgithub/regenie/regenie:v3.0.1.gz \
-	regenie \
-		--step 2 \
-		--bgen "/input/${BGEN_NAME}" \
-		--covarFile "/input/${COVAR_NAME}" \
-		--phenoFile "/input/${PHENO_NAME}" \
-        --pred "/pred/${PRED_NAME}" \
-		--bsize 1000 \
-		--threads 4 \
-		--gz --out "/output/${PHENO_CODE}.topmed-imputed.unrelated.chr_${CHR}"
+dx run app-swiss-army-knife \
+    -imount_inputs=true \
+    -iin="${BGEN}" \
+    -iin="${SAMPLE}" \
+    -iin="${PHENO}" \
+    -iin="${COVAR}" \
+    -iin="${PRED}" \
+    -iin="${LOCO}" \
+    --instance-type mem1_ssd2_v2_x16 \
+    --priority high \
+    --name "${JOB_NAME}" \
+    --folder "${OUTPUT_DIR}" \
+    -icmd="
+    regenie \
+      --step 2 \
+      --bgen "${BGEN_NAME}" \
+      --covarFile "${COVAR_NAME}" \
+      --phenoFile "${PHENO_NAME}" \
+      --pred "${PRED_NAME}" \
+      --bsize 1000 \
+      --threads 4 \
+      --gz --out "${PHENO_CODE}.topmed-imputed.unrelated.chr_${CHR}" \
+      --verbose
+    " \
+    --cost-limit 3 \
+    --brief \
+    --yes
+
+echo "[DONE] $(date) | Job launched: $JOB_NAME"
+exit 0
