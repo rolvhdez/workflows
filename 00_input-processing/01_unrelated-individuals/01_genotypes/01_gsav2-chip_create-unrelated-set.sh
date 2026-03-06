@@ -74,11 +74,11 @@ dx run app-swiss-army-knife \
         outname="${PREFIX}\.chr\_\$i"
         plink2 --bfile "${BED_NAME%.bed}" \
             --chr \$i \
-            --rm-dup 'exclude-all' \
-            --snps-only \
-            --keep "${UNRELATED_NAME}" \
+            --snps-only --rm-dup 'exclude-all' \
+            --geno 0.05 --maf 0.01 \
             --set-all-var-ids 'chr@:#:\$r:\$a' \
             --export bgen-1.2 \
+            --keep "${UNRELATED_NAME}" \
             --out "\$outname"
     done
   " \
