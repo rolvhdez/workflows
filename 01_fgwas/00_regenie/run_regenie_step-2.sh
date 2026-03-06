@@ -18,22 +18,22 @@
 
 echo "[INFO] Start: $(date)"
 
-check_dx_file() {
+checkDxFile() {
     # Checks the existence of a file
     # within DNAnexus.
     FILEPATH="$1"
-    if ! dx ls "$FILEPATH" &> /dev/null; then
-        echo "[ERROR] Missing file in DNAnexus: $FILEPATH $(date)"
+    if ! dx ls "$FILE" &> /dev/null; then
+        echo "[ERROR] $(date) | Missing file in DNAnexus: $FILEPATH"
         exit 1
     fi
+    echo "[INFO] Using: $FILE"
 }
-
-download_dx_file() {
-    FILEPATH="$1"
+downloadDxFile() {
+    FILE="$1"
     OUTPATH="$2"
-    check_dx_file "$FILEPATH"
+    checkDxFile "$FILE"
     mkdir -p "$OUTPATH"
-    dx download "$FILEPATH" -o "$OUTPATH" -f
+    dx download "$FILE" -o "$OUTPATH" -f
 }
 
 # --------------------------------
@@ -46,7 +46,7 @@ if [[ $# -ne 2 ]]; then
 fi
 
 # Inputs
-PHENO="$1"
+PHENO_CODE="$1"
 CHR="$2"
 
 if ! [[ "$CHR" =~ ^[0-9]+$ ]] || [[ "$CHR" -lt 1 ]] || [[ "$CHR" -gt 22 ]]; then
@@ -61,59 +61,37 @@ CHR_PADDED=$(printf "%02d" "$CHR")
 # MODIFY THESE PATHS TO MATCH YOUR PROJECT
 # --------------------------------
 
-INPUT_ROOT="/Users/Roberto/00_data"
-GENO_DIR="${INPUT_ROOT}/01_genotypes/02_topmed-imputed"
-PHENO_DIR="${INPUT_ROOT}/00_phenotypes/02_mcps_qc-phenotypes/ver_2"
-COVAR_DIR="${INPUT_ROOT}/00_phenotypes/02_mcps_qc-phenotypes/ver_2"
-GRM_DIR="/Data/KING-IBD"
-
 # Local
 DOWNLOAD_DIR="${HOME}/downloads/regenie-inputs"
 OUTPUT_ROOT="${HOME}/results"
-OUTPUT_DIR="${OUTPUT_ROOT}/${PHENO}"
+OUTPUT_DIR="${OUTPUT_ROOT}/${PHENO_CODE}"
 
 # File definitions
-BGEN_FILE="${GENO_DIR}/op_prefix_chr${CHR}.shapeit5_ligated.high-quality.bgen"
-SAMPLE_FILE="${GENO_DIR}/op_prefix_chr${CHR}.shapeit5_ligated.high-quality.sample"
-PHENO_FILE="${PHENO_DIR}/${PHENO}.qc-phenotype.txt"
-COVAR_FILE="${COVAR_DIR}/covars.qc-phenotype.nofasting.txt"
-GRM_FILE="${GRM_DIR}/king_ibdseg_4th.seg"
+BGEN=$(dx find data --tag 'topmed-imputed' --tag 'unrelated-individuals' --tag 'unphased' --name "*chr_${CHR}.bgen" --brief)
+SAMPLE=$(dx find data --tag 'topmed-imputed' --tag 'unrelated-individuals' --tag 'unphased' --name "*chr_${CHR}.sample" --brief)
+PHENO=$(dx find data --tag 'phenotype' --tag 'unrelated-individuals' --name "${PHENO_CODE}*.txt" --brief)
+COVAR=$(dx find data --tag 'covariates' --tag 'unrelated-individuals' --name "*.nofasting.txt" --brief)
 
 # Downloading
 echo "[INFO] $(date) | Downloading input files..."
-
-download_dx_file "$PHENO_FILE" "$DOWNLOAD_DIR"
-download_dx_file "$COVAR_FILE" "$DOWNLOAD_DIR"
-download_dx_file "$GRM_FILE" "$DOWNLOAD_DIR"
-download_dx_file "$BGEN_FILE" "$DOWNLOAD_DIR"
-download_dx_file "$SAMPLE_FILE" "$DOWNLOAD_DIR"
-
+downloadDxFile "$BGEN" "$DOWNLOAD_DIR"
+downloadDxFile "$SAMPLE" "$DOWNLOAD_DIR"
+downloadDxFile "$PHENO" "$DOWNLOAD_DIR"
+downloadDxFile "$COVAR" "$DOWNLOAD_DIR"
 echo "[INFO] $(date) | All required inputs downloaded."
 
 # Redefine the local inputs
-BGEN_FILE="${DOWNLOAD_DIR}/op_prefix_chr${CHR}.shapeit5_ligated.high-quality.bgen"
-SAMPLE_FILE="${DOWNLOAD_DIR}/op_prefix_chr${CHR}.shapeit5_ligated.high-quality.sample"
-PHENO_FILE="${DOWNLOAD_DIR}/${PHENO}.qc-phenotype.txt"
-COVAR_FILE="${DOWNLOAD_DIR}/covars.qc-phenotype.nofasting.txt"
-GRM_FILE="${DOWNLOAD_DIR}/king_ibdseg_4th.seg"
+BGEN_NAME=$(dx describe $BGEN --json | jq -r .name)
+SAMPLE_NAME=$(dx describe $SAMPLE --json | jq -r .name)
+PHENO_NAME=$(dx describe $PHENO --json | jq -r .name)
+COVAR_NAME=$(dx describe $COVAR --json | jq -r .name)
 
-PRED_DIR="${HOME}/results/${PHENO}"
-PRED_FILE="${PRED_DIR}/${PHENO}.chr_${CHR}.gsav2_phased.unrelated_pred.list"
+PRED_DIR="${HOME}/results/${PHENO_CODE}"
+PRED_NAME="${PHENO_CODE}.chr_${CHR}.gsav2-chip.unrelated_pred.list"
 
 # --------------------------------
 # 02. Run REGENIE
 # --------------------------------
-
-# Eliminate the phasing
-UNPHASED_FILE="${BGEN_FILE%.bgen}.unphased.bgen"
-plink2 --bgen ${BGEN_FILE} ref-first \
-    --sample ${SAMPLE_FILE} \
-    --make-pgen erase-phase \
-    --out "${UNPHASED_FILE%.bgen}"
-plink2 --pfile "/tmp/intermediate" \
-    --export bgen-1.2 \
-    --out "${UNPHASED_FILE%.bgen}"
-rm -rf "/tmp/intermediate*"
 
 # Run regenie
 docker run -w /tmp/ \
@@ -123,11 +101,10 @@ docker run -w /tmp/ \
 	ghcr.io/rgcgithub/regenie/regenie:v3.0.1.gz \
 	regenie \
 		--step 2 \
-		--bgen /input/$(basename "${UNPHASED_FILE}") \
-		--covarFile /input/$(basename "${COVAR_FILE}") \
-		--phenoFile /input/$(basename "${PHENO_FILE}") \
-        --pred /pred/$(basename "${PRED_FILE}") \
+		--bgen "/input/${BGEN_NAME}" \
+		--covarFile "/input/${COVAR_NAME}" \
+		--phenoFile "/input/${PHENO_NAME}" \
+        --pred "/pred/${PRED_NAME}" \
 		--bsize 1000 \
 		--threads 4 \
-		--gz --out /output/${PHENO}.topmed_imputed.unrelated \
-		--verbose
+		--gz --out "/output/${PHENO_CODE}.topmed-imputed.unrelated.chr_${CHR}"

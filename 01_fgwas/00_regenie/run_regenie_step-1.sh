@@ -46,7 +46,7 @@ if [[ $# -ne 2 ]]; then
 fi
 
 # Inputs
-PHENO="$1"
+PHENO_CODE="$1"
 CHR="$2"
 
 if ! [[ "$CHR" =~ ^[0-9]+$ ]] || [[ "$CHR" -lt 1 ]] || [[ "$CHR" -gt 22 ]]; then
@@ -64,22 +64,20 @@ CHR_PADDED=$(printf "%02d" "$CHR")
 # Local
 DOWNLOAD_DIR="${HOME}/downloads/regenie-inputs"
 OUTPUT_ROOT="${HOME}/results"
-OUTPUT_DIR="${OUTPUT_ROOT}/${PHENO}"
+OUTPUT_DIR="${OUTPUT_ROOT}/${PHENO_CODE}"
 
 # File definitions
 BGEN=$(dx find data --tag 'gsav2-chip' --tag 'unrelated-individuals' --name "*chr_${CHR}.bgen" --brief)
 SAMPLE=$(dx find data --tag 'gsav2-chip' --tag 'unrelated-individuals' --name "*chr_${CHR}.sample" --brief)
-PHENO=$(dx find data --tag 'phenotype' --tag 'unrelated-individuals' --name "${PHENO}*.txt" --brief)
+PHENO=$(dx find data --tag 'phenotype' --tag 'unrelated-individuals' --name "${PHENO_CODE}*.txt" --brief)
 COVAR=$(dx find data --tag 'covariates' --tag 'unrelated-individuals' --name "*.nofasting.txt" --brief)
 
 # Downloading
 echo "[INFO] $(date) | Downloading input files..."
-
 downloadDxFile "$BGEN" "$DOWNLOAD_DIR"
 downloadDxFile "$SAMPLE" "$DOWNLOAD_DIR"
 downloadDxFile "$PHENO" "$DOWNLOAD_DIR"
 downloadDxFile "$COVAR" "$DOWNLOAD_DIR"
-
 echo "[INFO] $(date) | All required inputs downloaded."
 
 # Redefine the local inputs
@@ -100,5 +98,5 @@ docker run -w /tmp/ \
 		--phenoFile "/input/${PHENO_NAME}" \
 		--bsize 1000 \
 		--threads 4 \
-		--gz --out /output/${PHENO}.chr_${CHR}.gsav2_phased.unrelated \
+		--gz --out "/output/${PHENO_CODE}.gsav2-chip.unrelated.chr_${CHR}" \
 		--verbose
