@@ -1,12 +1,13 @@
 #!/bin/bash
 set -e
 
+in_dir="$1"
 out_dir="$HOME/results"
 mkdir -p $out_dir
 out_file="${out_dir}/rg_table.txt"
 
 first_file=1
-for file in $(ls $HOME/data/*.log | sort -V); do
+for file in "$in_dir"/*.log; do
     if [[ $first_file == 1 ]]; then
         cat $file | tail -n 5 | head -n 2 > $out_file
         first_file=0
