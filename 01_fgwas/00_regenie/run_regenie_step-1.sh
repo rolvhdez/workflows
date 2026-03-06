@@ -18,22 +18,22 @@
 
 echo "[INFO] Start: $(date)"
 
-check_dx_file() {
+checkDxFile() {
     # Checks the existence of a file
     # within DNAnexus.
     FILEPATH="$1"
-    if ! dx ls "$FILEPATH" &> /dev/null; then
-        echo "[ERROR] Missing file in DNAnexus: $FILEPATH $(date)"
+    if ! dx ls "$FILE" &> /dev/null; then
+        echo "[ERROR] $(date) | Missing file in DNAnexus: $FILEPATH"
         exit 1
     fi
+    echo "[INFO] Using: $FILE"
 }
-
-download_dx_file() {
-    FILEPATH="$1"
+downloadDxFile() {
+    FILE="$1"
     OUTPATH="$2"
-    check_dx_file "$FILEPATH"
+    checkDxFile "$FILE"
     mkdir -p "$OUTPATH"
-    dx download "$FILEPATH" -o "$OUTPATH" -f
+    dx download "$FILE" -o "$OUTPATH" -f
 }
 
 # --------------------------------
@@ -61,49 +61,43 @@ CHR_PADDED=$(printf "%02d" "$CHR")
 # MODIFY THESE PATHS TO MATCH YOUR PROJECT
 # --------------------------------
 
-INPUT_ROOT="/Users/Roberto/00_data"
-GENO_DIR="${INPUT_ROOT}/01_genotypes/01_gsav2-chip"
-PHENO_DIR="${INPUT_ROOT}/00_phenotypes/02_mcps_qc-phenotypes/ver_2"
-COVAR_DIR="${INPUT_ROOT}/00_phenotypes/02_mcps_qc-phenotypes/ver_2"
-GRM_DIR="/Data/KING-IBD"
-
 # Local
 DOWNLOAD_DIR="${HOME}/downloads/regenie-inputs"
 OUTPUT_ROOT="${HOME}/results"
 OUTPUT_DIR="${OUTPUT_ROOT}/${PHENO}"
 
 # File definitions
-BGEN_FILE="${GENO_DIR}/MCPS_Freeze_150.GT_hg38.pVCF.revised_qc.autosomes-maf01.chr_${CHR}.bgen"
-PHENO_FILE="${PHENO_DIR}/${PHENO}.qc-phenotype.txt"
-COVAR_FILE="${COVAR_DIR}/covars.qc-phenotype.nofasting.txt"
-GRM_FILE="${GRM_DIR}/king_ibdseg_4th.seg"
+BGEN=$(dx find data --tag 'gsav2-chip' --tag 'unrelated-individuals' --name "*chr_${CHR}.bgen" --brief)
+SAMPLE=$(dx find data --tag 'gsav2-chip' --tag 'unrelated-individuals' --name "*chr_${CHR}.sample" --brief)
+PHENO=$(dx find data --tag 'phenotype' --tag 'unrelated-individuals' --name "${PHENO}*.txt" --brief)
+COVAR=$(dx find data --tag 'covariates' --tag 'unrelated-individuals' --name "*.nofasting.txt" --brief)
 
 # Downloading
 echo "[INFO] $(date) | Downloading input files..."
 
-download_dx_file "$PHENO_FILE" "$DOWNLOAD_DIR"
-download_dx_file "$COVAR_FILE" "$DOWNLOAD_DIR"
-download_dx_file "$GRM_FILE" "$DOWNLOAD_DIR"
-download_dx_file "$BGEN_FILE" "$DOWNLOAD_DIR"
+downloadDxFile "$BGEN" "$DOWNLOAD_DIR"
+downloadDxFile "$SAMPLE" "$DOWNLOAD_DIR"
+downloadDxFile "$PHENO" "$DOWNLOAD_DIR"
+downloadDxFile "$COVAR" "$DOWNLOAD_DIR"
 
 echo "[INFO] $(date) | All required inputs downloaded."
 
 # Redefine the local inputs
-BGEN_FILE="${DOWNLOAD_DIR}/MCPS_Freeze_150.GT_hg38.pVCF.revised_qc.autosomes-maf01.chr_${CHR}.bgen"
-PHENO_FILE="${DOWNLOAD_DIR}/${PHENO}.qc-phenotype.txt"
-COVAR_FILE="${DOWNLOAD_DIR}/covars.qc-phenotype.nofasting.txt"
-GRM_FILE="${DOWNLOAD_DIR}/king_ibdseg_4th.seg"
+BGEN_NAME=$(dx describe $BGEN --json | jq -r .name)
+SAMPLE_NAME=$(dx describe $SAMPLE --json | jq -r .name)
+PHENO_NAME=$(dx describe $PHENO --json | jq -r .name)
+COVAR_NAME=$(dx describe $COVAR --json | jq -r .name)
 
 # Run the script
 docker run -w /tmp/ \
 	-v "${DOWNLOAD_DIR}":/input \
 	-v "${OUTPUT_DIR}":/output \
-	regenie:v3.0.1 \
+	ghcr.io/rgcgithub/regenie/regenie:v3.0.1.gz \
 	regenie \
 		--step 1 \
-		--bgen /input/$(basename "${BGEN_FILE}") \
-		--covarFile /input/$(basename "${COVAR_FILE}") \
-		--phenoFile /input/$(basename "${PHENO_FILE}") \
+		--bgen "/input/${BGEN_NAME}" \
+		--covarFile "/input/${COVAR_NAME}" \
+		--phenoFile "/input/${PHENO_NAME}" \
 		--bsize 1000 \
 		--threads 4 \
 		--gz --out /output/${PHENO}.chr_${CHR}.gsav2_phased.unrelated \
